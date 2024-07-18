@@ -1,113 +1,174 @@
-import Image from "next/image";
+"use client"
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    const [notes, setNotes] = useState([]);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentNoteId, setCurrentNoteId] = useState(null);
+    const [formData, setFormData] = useState({ title: '', note: '', date: '', priority: '', category: '' });
+    const router = useRouter();
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+    useEffect(() => {
+        async function fetchNotes() {
+            const response = await fetch('/api/notes/getNote');
+            if (response.ok) {
+                const data = await response.json();
+                setNotes(data);
+            } else {
+                console.error('Failed to fetch notes');
+            }
+        }
 
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+        fetchNotes();
+    }, []);
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+    async function handleSubmit(event) {
+        event.preventDefault();
+        const { title, note, date, priority, category } = formData;
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
+        if (isEditing) {
+            try {
+                const response = await fetch(`/api/notes/updateNote/${currentNoteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title, note, date, priority, category }),
+                });
+                if (response.ok) {
+                    const updatedNote = await response.json();
+                    setNotes(notes.map(n => n.id === currentNoteId ? updatedNote : n));
+                    setIsEditing(false);
+                    setCurrentNoteId(null);
+                } else {
+                    console.error('Failed to update note');
+                }
+            } catch (error) {
+                console.error("Error updating note", error);
+            }
+        } else {
+            try {
+                const response = await fetch('/api/notes/postNote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title, note, date, priority, category }),
+                });
+                if (response.ok) {
+                    const newNote = await response.json();
+                    setNotes([...notes, newNote]);
+                } else {
+                    console.error('Failed to create note');
+                }
+            } catch (error) {
+                console.error("Error creating note", error);
+            }
+        }
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+        setFormData({ title: '', note: '', date: '', priority: '', category: '' });
+    }
+
+    async function deleteNoteHandler(id) {
+        try {
+            const response = await fetch(`/api/notes/deleteNote/${id}`, {
+                method: 'DELETE',
+            });
+            if (response.ok) {
+                setNotes(notes.filter(note => note.id !== id));
+            } else {
+                console.error('Failed to delete note');
+            }
+        } catch (error) {
+            console.error("Error deleting note", error);
+        }
+    }
+
+    function editNoteHandler(note) {
+        setIsEditing(true);
+        setCurrentNoteId(note.id);
+        setFormData({ title: note.title, note: note.note, date: note.date, priority: note.priority, category: note.category });
+    }
+
+    return (
+        <main className="m-10">
+            <div className="m-5">
+                <h1 className="text-center m-5">{isEditing ? 'Edit Note' : 'Add Note'}</h1>
+            </div>  
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <input 
+                    type="text" 
+                    id="title"
+                    name="title"
+                    placeholder="Title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="shadow-lg rounded-md shadow-black h-10 p-3 w-[100%]"
+                />
+                <input 
+                    type="text" 
+                    id="note"
+                    name="note"
+                    placeholder="Add Note"
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    className="shadow-lg rounded-md shadow-black h-10 p-3 w-[100%]"
+                />
+                <input 
+                    type="date" 
+                    id="date"
+                    name="date"
+                    placeholder="Add Date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="shadow-lg rounded-md shadow-black h-10 p-3 w-[100%]"
+                />
+                <input 
+                    type="text" 
+                    id="priority"
+                    name="priority"
+                    placeholder="Priority"
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    className="shadow-lg rounded-md shadow-black h-10 p-3 w-[100%]"
+                />
+                <input 
+                    type="text" 
+                    id="category"
+                    name="category"
+                    placeholder="Category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="shadow-lg rounded-md shadow-black h-10 p-3 w-[100%]"
+                />
+                <button className="bg-orange-500 font-bold text-white hover:bg-red-600 p-3 rounded-md">
+                    Submit
+                </button>
+            </form>
+            <div>
+                <h1 className="text-center font-bold m-5 mb-5">Display Note</h1>
+            </div>
+            {
+                notes.map((element) => (
+                    <ul className="flex my-2" key={element.id}>
+                        <li className="text-center w-[20%]">{element.title}</li>
+                        <li className="text-center w-[20%]">{element.note}</li>
+                        <li className="text-center w-[15%]">{new Date(element.date).toLocaleDateString()}</li>
+                        <li className="text-center w-[15%]">{element.priority}</li>
+                        <li className="text-center w-[15%]">{element.category}</li>
+                        <li className="flex text-center w-[15%]">
+                            <button onClick={() => editNoteHandler(element)} className="bg-red-400 font-bold text-white mr-2">
+                                EDIT
+                            </button> 
+                            <button onClick={() => deleteNoteHandler(element.id)} className="bg-red-600 font-bold text-white">
+                                DELETE
+                            </button>
+                        </li>
+                    </ul>
+                ))
+            }
+        </main>
+    );
 }
